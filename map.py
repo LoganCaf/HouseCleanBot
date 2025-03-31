@@ -44,6 +44,8 @@ class Map:
                     color = [255, 255, 255]
                 elif self.grid[x][y] == 'a':
                     color = [0, 255, 0]
+                elif self.grid[x][y] == 'e':
+                    color = [50, 50, 50]
                 img[x * cell_size:(x + 1) * cell_size, y * cell_size:(y + 1) * cell_size] = color
 
         if show:
@@ -56,9 +58,10 @@ class Map:
 
     def move_agent(self, x, y):
         if self.grid[x][y] != 'w':
-            self.grid[self.agent[0]][self.agent[1]] = 'e'
+            self.grid[self.agent[0]][self.agent[1]] = 'c' # set where i was to clean
             self.grid[x][y] = 'a'
             self.agent = (x, y)
+
     
     def move_direction(self, direction):
         match direction:
@@ -74,8 +77,9 @@ class Map:
     def getGrid(self):
         out = np.array(self.grid)
         out[out == 'w'] = 0
-        out[out == 'a'] = .5
-        out[out == 'e'] = 1
+        out[out == 'a'] = .3
+        out[out == 'e'] = .7
+        out[out == 'c'] = 1
         out = out.astype(np.float16)
         return out
 
