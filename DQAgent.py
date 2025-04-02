@@ -12,12 +12,12 @@ class DQAgent:
         self.outputShape = outputShape
         self.epsilon = 1
         self.epsilonDecay = .9999
-        self.learningRate = 0.0025
+        self.learningRate = 0.000025
         self.epsilonMin = 0.1
         self.gamma = 0.95
-        self.memory = deque(maxlen=10240)
+        self.memory = deque(maxlen=20480)
         self.minMemorySize = 1024
-        self.sampleSize = 256
+        self.sampleSize = 128
         self.actionModel = self.buildModel()
         self.targetModel = self.buildModel()
         self.updateTime = 0
@@ -35,10 +35,12 @@ class DQAgent:
 
     def buildModel(self):
         model = Sequential()
-        model.add(Conv2D(64, (4, 4), activation='relu', input_shape=self.inputShape))
-        model.add(Conv2D(64, (3, 3), activation='relu'))
-        model.add(Conv2D(64, (2, 2), activation='relu'))
+        model.add(Conv2D(128, (6, 6), activation='relu', input_shape=self.inputShape))
+        model.add(Conv2D(128, (4, 4), activation='relu'))
+        model.add(Conv2D(128, (2, 2), activation='relu'))
         model.add(Flatten())
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(512, activation='relu'))
         model.add(Dense(512, activation='relu'))
         model.add(Dense(512, activation='relu'))
         model.add(Dense(self.outputShape, activation='linear'))
@@ -69,7 +71,7 @@ class DQAgent:
             return
         batch = random.sample(self.memory, self.sampleSize)
         states = np.array([b[0] for b in batch]).reshape((self.sampleSize, *self.inputShape))
-        currTargets = self.targetModel.predict(states, verbose=0, batch_size=self.sampleSize)
+        currTargets = self.actionModel.predict(states, verbose=0, batch_size=self.sampleSize)
         nextTargets = self.targetModel.predict(np.array([b[3] for b in batch]).reshape((self.sampleSize, *self.inputShape)), verbose=0, batch_size=self.sampleSize)
 
         for i, (state, action, reward, nextState, done) in enumerate(batch):

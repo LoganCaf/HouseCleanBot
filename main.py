@@ -1,6 +1,7 @@
 from map import Map
 from DQAgent import DQAgent
 import random
+import matplotlib.pyplot as plt
 
 print(1111)
 
@@ -18,17 +19,18 @@ def reset():
 agent = DQAgent((10, 10, 1), 4)
 
 roundNum = 0
+EveryReward = []
 while roundNum < 10000:
     roundNum += 1
     m = reset()
     allRewards = 0
     visited = set()
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
-    for i in range(200):
+    for i in range(100):
         m.move_direction(agent.act(m.getGrid()))
-        if roundNum % 1 == 0:
+        if roundNum % 10 == 0:
             m.displayBase()
-            startLen = len(visited)
+        startLen = len(visited)
         visited.add(m.agent)
         if len(visited) >= 64:
             print("Visited all cells")
@@ -42,6 +44,10 @@ while roundNum < 10000:
         if reward == 1000:
             break
     print("Total rewards:", allRewards)
+    EveryReward.append(allRewards)
+    plt.plot(EveryReward)
+    plt.plot([sum(EveryReward[max(0,i-10):i+1])/min(10,i+1) for i in range(len(EveryReward))])
+    plt.savefig("rewards.png")
 
 m.displayMove()
 m.close()
