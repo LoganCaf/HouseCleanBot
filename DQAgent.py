@@ -5,6 +5,7 @@ from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D
 from tensorflow.keras.optimizers import Adam
 from collections import deque
 import random
+from datetime import datetime
 
 class DQAgent:
     def __init__(self,inputShape,outputShape):
@@ -12,15 +13,16 @@ class DQAgent:
         self.outputShape = outputShape
         self.epsilon = 1
         self.epsilonDecay = .9999
-        self.learningRate = 0.000025
+        self.learningRate = 0.025
         self.epsilonMin = 0.1
         self.gamma = 0.95
         self.memory = deque(maxlen=20480)
-        self.minMemorySize = 1024
+        self.minMemorySize = 1280
         self.sampleSize = 128
         self.actionModel = self.buildModel()
         self.targetModel = self.buildModel()
         self.updateTime = 0
+        self.trainTime = 0
         self.updateTargetModel()
     
     def updateTargetModel(self):
@@ -29,15 +31,16 @@ class DQAgent:
             return
         self.targetModel.set_weights(self.actionModel.get_weights())
         self.updateTime = 1000
+        self.targetModel.save_weights(f"Model-{datetime.now()}.h5")
 
     def reset(self):
         pass
 
     def buildModel(self):
         model = Sequential()
-        model.add(Conv2D(128, (6, 6), activation='relu', input_shape=self.inputShape))
-        model.add(Conv2D(128, (4, 4), activation='relu'))
-        model.add(Conv2D(128, (2, 2), activation='relu'))
+        model.add(Conv2D(128, (5, 5), activation='relu', input_shape=self.inputShape, padding='same'))
+        model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
+        model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
         model.add(Flatten())
         model.add(Dense(512, activation='relu'))
         model.add(Dense(512, activation='relu'))
@@ -69,10 +72,14 @@ class DQAgent:
     def train(self):
         if len(self.memory) < self.minMemorySize:
             return
-        batch = random.sample(self.memory, self.sampleSize)
-        states = np.array([b[0] for b in batch]).reshape((self.sampleSize, *self.inputShape))
+        if self.trainTime > 0:
+            self.trainTime -= 1
+            return
+        self.trainTime = 10
+        batch = random.sample(self.memory, self.sampleSize*self.trainTime)
+        states = np.array([b[0] for b in batch]).reshape((self.sampleSize*self.trainTime, *self.inputShape))
         currTargets = self.actionModel.predict(states, verbose=0, batch_size=self.sampleSize)
-        nextTargets = self.targetModel.predict(np.array([b[3] for b in batch]).reshape((self.sampleSize, *self.inputShape)), verbose=0, batch_size=self.sampleSize)
+        nextTargets = self.targetModel.predict(np.array([b[3] for b in batch]).reshape((self.sampleSize*self.trainTime, *self.inputShape)), verbose=0, batch_size=self.sampleSize)
 
         for i, (state, action, reward, nextState, done) in enumerate(batch):
             if done:

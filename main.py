@@ -26,7 +26,7 @@ while roundNum < 10000:
     allRewards = 0
     visited = set()
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
-    for i in range(100):
+    for i in range(300):
         m.move_direction(agent.act(m.getGrid()))
         if roundNum % 10 == 0:
             m.displayBase()
@@ -45,7 +45,7 @@ while roundNum < 10000:
             break
     print("Total rewards:", allRewards)
     EveryReward.append(allRewards)
-    plt.plot(EveryReward)
+    plt.plot([sum(EveryReward[max(0,i-100):i+1])/min(100,i+1) for i in range(len(EveryReward))])
     plt.plot([sum(EveryReward[max(0,i-10):i+1])/min(10,i+1) for i in range(len(EveryReward))])
     plt.savefig("rewards.png")
 
