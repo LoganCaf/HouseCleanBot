@@ -17,6 +17,7 @@ def reset():
 
 
 agent = DQAgent((10, 10, 1), 4)
+agent.loadModel("models/Model-latest.weights.h5")
 
 roundNum = 0
 EveryReward = []
@@ -26,7 +27,7 @@ while roundNum < 10000:
     allRewards = 0
     visited = set()
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
-    for i in range(300):
+    for i in range(1000):
         m.move_direction(agent.act(m.getGrid()))
         if roundNum % 10 == 0:
             m.displayBase()
