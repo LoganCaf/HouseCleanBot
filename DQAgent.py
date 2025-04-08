@@ -91,7 +91,7 @@ class DQAgent:
             if done:
                 currTargets[i][action] = reward
             else:
-                currTargets[i][action] = reward + self.gamma * np.argmax(nextTargets[i])
+                currTargets[i][action] = reward + self.gamma * np.max(nextTargets[i])
         self.actionModel.fit(states, currTargets, epochs=1, verbose=0, batch_size=self.sampleSize)
         self.updateTargetModel()
 
