@@ -27,7 +27,7 @@ while roundNum < 10000:
     allRewards = 0
     visited = set()
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
-    for i in range(1000):
+    for i in range(100):
         m.move_direction(agent.act(m.getGrid()))
         if roundNum % 10 == 0:
             m.displayBase()
