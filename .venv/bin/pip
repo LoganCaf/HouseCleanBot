@@ -1,4 +1,4 @@
-#!/home/warpc/Nextcloud/code/python/2025/HouseCleanBot/.venv/bin/python3
+#!/home/warpc/Nextcloud/code/python/2025/HouseCleanBot/.venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

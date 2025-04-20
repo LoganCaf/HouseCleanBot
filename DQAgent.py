@@ -3,8 +3,8 @@
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, Input, Lambda, add
 from tensorflow.keras.optimizers import Adam
 from collections import deque
 import random
@@ -39,21 +39,32 @@ class DQAgent:
             return
         self.targetModel.set_weights(self.actionModel.get_weights())
         self.updateTime = 1000
-        self.targetModel.save_weights(f"models/Model-{datetime.now().strftime("%d-%m-%Y-%H-%M")}.weights.h5")
-        self.actionModel.save_weights(f"models/Model-latest.weights.h5")
+        if self.epsilon < .9:
+            self.targetModel.save_weights(f"models/Model-{datetime.now().strftime("%d-%m-%Y-%H-%M")}.weights.h5")
+            self.actionModel.save_weights(f"models/Model-latest.weights.h5")
 
     def reset(self):
         pass
 
     def buildModel(self):
-        model = Sequential([
-        Conv2D(64, (3,3), activation='relu', padding='same', input_shape=self.inputShape),
-        Conv2D(64, (3,3), activation='relu', padding='same'),
-        Flatten(),
-        Dense(256, activation='relu'),
-        Dense(self.outputShape, activation='linear')
-        ])
-        model.compile(optimizer=Adam(learning_rate=self.learningRate), loss='mse')
+        inputs = Input(shape=self.inputShape)
+        x = Conv2D(64, (3,3), activation='relu', padding='same')(inputs)
+        x = Conv2D(64, (3,3), activation='relu', padding='same')(x)
+        flat = Flatten()(x)
+
+        v = Dense(128, activation='relu')(flat)
+        v = Dense(1, activation='linear')(v)  # V(s)
+
+        a = Dense(128, activation='relu')(flat)
+        a = Dense(self.outputShape, activation='linear')(a)  # A(s,a)
+
+        mean_a = Lambda(lambda t: tf.reduce_mean(t, axis=1, keepdims=True))(a)
+        q_values = add([v, Lambda(lambda t: t[0] - t[1])([a, mean_a])])
+
+        # 5) Compile model
+        model = Model(inputs=inputs, outputs=q_values)
+        model.compile(optimizer=tf.keras.optimizers.Adam(self.learningRate),
+                    loss='mse')
         return model
 
     # call to take an action in the environment
