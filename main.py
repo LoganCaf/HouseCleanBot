@@ -20,7 +20,7 @@ def reset():
 
 
 agent = DQAgent((10, 10, 4), 4)
-agent.loadModel("models/Model-latest.weights.h5")
+#agent.loadModel("models/Model-latest.weights.h5")
 
 STEP_PENALTY     = -1.0     # every time step
 NEW_CELL_REWARD  = +5.0
@@ -36,14 +36,15 @@ while roundNum < 10000:
     m = reset()
     allRewards = 0
     visited = set()
+    visited.add(m.agent)
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
     if roundNum % 100 == 0:
         oldEps = agent.epsilon
     for i in range(200):
+        m.move_direction(agent.act(m.getGrid3D()))
         startLen = len(visited)
         visited.add(m.agent)
-        m.move_direction(agent.act(m.getGrid3D()))
-        if roundNum % 1 == 0:
+        if roundNum % 10 == 0:
             m.displayBase()
         if len(visited) >= mapsize:
             print("-------------------------------------Visited all cells")
