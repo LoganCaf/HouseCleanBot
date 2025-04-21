@@ -20,7 +20,7 @@ def reset():
 
 
 agent = DQAgent((10, 10, 4), 4)
-#agent.loadModel("models/Model-latest.weights.h5")
+agent.loadModel("models/Model-latest.weights.h5")
 
 STEP_PENALTY     = -1.0     # every time step
 NEW_CELL_REWARD  = +5.0
