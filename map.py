@@ -6,20 +6,48 @@ import numpy as np
 from PIL import Image
 
 class Map:
-    def __init__(self, length, width):
+    def __init__(self, length, width,agentSize=1,MAXSIZE=400,MAXBANDS=15):
         self.length = length
         self.width = width
-        self.grid = [['e' for _ in range(width)] for _ in range(length)]
+        self.agentSize = agentSize
         self.agent = None
+        self.grid = np.zeros((MAXSIZE, MAXSIZE, MAXBANDS)).astype(np.float16)
+        # grind bands:
+        # if all 0 then assumed nothing is there
+        # 0 - wall
+        # 1 - agent
+        # 2 - cleaned
+
 
     def add_wall(self, x1, y1, x2, y2):
         for x in range(x1, x2):
             for y in range(y1, y2):
-                self.grid[x][y] = 'w'
+                self.grid[x,y,0] = 1
 
     def add_agent(self, x, y):
-        self.grid[x][y] = 'a'
         self.agent = (x, y)
+        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
+            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
+                if x + r < self.length and y + c < self.width:
+                    if self.grid[x + r,y + c,0] != 0:
+                        raise ValueError("Invalid position for agent")
+                    self.grid[x + r,y + c,1] = 1
+    
+    def remove_agent(self):
+        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
+            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
+                if self.agent[0] + r < self.length and self.agent[1] + c < self.width:
+                    self.grid[self.agent[0] + r,self.agent[1] + c,2] = 1 # set where i was to clean
+                    self.grid[self.agent[0] + r,self.agent[1] + c,1] = 0 # remove agent
+        self.agent = None
+    
+    def checkCollision(self, x, y):
+        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
+            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
+                if x + r < self.length and y + c < self.width:
+                    if self.grid[x + r,y + c,0] != 0:
+                        return True
+        return False
 
     def displayMove(self):
         while True:
@@ -38,16 +66,16 @@ class Map:
             cv.imshow("Environment", img)
     
     def displayBase(self,show=True):
-        cell_size = 50
+        cell_size = 5
         img = np.zeros((self.length * cell_size, self.width * cell_size, 3), np.uint8)
         for x in range(self.length):
             for y in range(self.width):
                 color = [0, 0, 0]
-                if self.grid[x][y] == 'w':
+                if self.grid[x,y,0] == 1:
                     color = [255, 255, 255]
-                elif self.grid[x][y] == 'a':
+                elif self.grid[x,y,1] == 1:
                     color = [0, 255, 0]
-                elif self.grid[x][y] == 'e':
+                elif self.grid[x,y,2] == 1:
                     color = [50, 50, 50]
                 img[x * cell_size:(x + 1) * cell_size, y * cell_size:(y + 1) * cell_size] = color
 
@@ -60,47 +88,33 @@ class Map:
         cv.destroyAllWindows()
 
     def move_agent(self, x, y):
-        if self.grid[x][y] != 'w':
-            self.grid[self.agent[0]][self.agent[1]] = 'c' # set where i was to clean
-            self.grid[x][y] = 'a'
-            self.agent = (x, y)
+        if not self.checkCollision(x, y):
+            self.remove_agent()
+            self.add_agent(x, y)
 
     
     def move_direction(self, direction):
+        mult = ((direction // 4)*self.agentSize)//4 # movement speed
+        direction = direction%4 #movement direction
         match direction:
             case 0:
-                self.move_agent(self.agent[0] - 1, self.agent[1])
+                self.move_agent(self.agent[0] - mult, self.agent[1])
             case 1:
-                self.move_agent(self.agent[0] + 1, self.agent[1])
+                self.move_agent(self.agent[0] + mult, self.agent[1])
             case 2:
-                self.move_agent(self.agent[0], self.agent[1] - 1)
+                self.move_agent(self.agent[0], self.agent[1] - mult)
             case 3:
-                self.move_agent(self.agent[0], self.agent[1] + 1)
+                self.move_agent(self.agent[0], self.agent[1] + mult)
     
-    def getGrid(self):
-        out = np.array(self.grid)
-        out[out == 'w'] = 0
-        out[out == 'a'] = .3
-        out[out == 'e'] = .7
-        out[out == 'c'] = 1
-        out = out.astype(np.float16)
-        return out
 
     def getGrid3D(self):
-        arr = np.asarray(self.grid)              # convert first!
-        out = np.zeros((self.length, self.width, 4), dtype=np.float32)
-
-        out[:, :, 0] = (arr == 'w')              # wall channel
-        out[:, :, 1] = (arr == 'a')              # agent channel
-        out[:, :, 2] = (arr == 'e')              # empty channel
-        out[:, :, 3] = (arr == 'c')              # cleaned/visited channel
-        return out
+        return self.grid
 
     def getMovableCount(self):
         count = 0
         for x in range(self.length):
             for y in range(self.width):
-                if self.grid[x][y] != 'w':
+                if self.grid[x,y,0] != 1:
                     count += 1
         return count
 

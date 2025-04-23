@@ -8,19 +8,21 @@ import matplotlib.pyplot as plt
 
 print(1111)
 
+MAXSIZE = 100
+MAXBANDS = 3
 
 def reset():
-    m = Map(10, 10)
-    m.add_wall(0, 0, 10, 1)
-    m.add_wall(0, 0, 1, 10)
-    m.add_wall(9, 0, 10, 10)
-    m.add_wall(0, 9, 10, 10)
-    m.add_agent(random.randint(2, 7), random.randint(2, 7))
+    m = Map(100, 100, 10, MAXSIZE, MAXBANDS)
+    m.add_wall(0, 0, 100, 10)
+    m.add_wall(0, 0, 10, 100)
+    m.add_wall(90, 0, 100, 100)
+    m.add_wall(0, 90, 100, 100)
+    m.add_agent(random.randint(20, 70), random.randint(20, 70))
     return m
 
 
-agent = DQAgent((10, 10, 4), 4)
-agent.loadModel("models/Model-latest.weights.h5")
+agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
+#agent.loadModel("models/Model-latest.weights.h5")
 
 STEP_PENALTY     = -1.0     # every time step
 NEW_CELL_REWARD  = +5.0

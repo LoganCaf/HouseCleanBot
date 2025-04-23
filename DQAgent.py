@@ -10,6 +10,9 @@ from collections import deque
 import random
 from datetime import datetime
 
+from tensorflow.keras import mixed_precision
+mixed_precision.set_global_policy('mixed_float16')
+
 class DQAgent:
     def __init__(self,inputShape,outputShape):
         self.inputShape = inputShape
@@ -21,7 +24,7 @@ class DQAgent:
         self.gamma = 0.95
         self.memory = deque(maxlen=51200)
         self.minMemorySize = 5120
-        self.sampleSize = 256
+        self.sampleSize = 128
         self.actionModel = self.buildModel()
         self.targetModel = self.buildModel()
         self.updateTime = 0
