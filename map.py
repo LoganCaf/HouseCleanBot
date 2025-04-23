@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 class Map:
-    def __init__(self, length, width,agentSize=1,MAXSIZE=400,MAXBANDS=15):
+    def __init__(self, length, width,agentSize=10,MAXSIZE=400,MAXBANDS=15):
         self.length = length
         self.width = width
         self.agentSize = agentSize
@@ -20,9 +20,7 @@ class Map:
 
 
     def add_wall(self, x1, y1, x2, y2):
-        for x in range(x1, x2):
-            for y in range(y1, y2):
-                self.grid[x,y,0] = 1
+        self.grid[x1:x2, y1:y2, 0] = 1 # set wall
 
     def add_agent(self, x, y):
         self.agent = (x, y)
@@ -94,7 +92,7 @@ class Map:
 
     
     def move_direction(self, direction):
-        mult = ((direction // 4)*self.agentSize)//4 # movement speed
+        mult = (((direction // 4)+1)*self.agentSize)//4 # movement speed
         direction = direction%4 #movement direction
         match direction:
             case 0:

@@ -6,7 +6,10 @@ from DQAgent import DQAgent
 import random
 import matplotlib.pyplot as plt
 
-print(1111)
+def moving_avg(seq, window):
+    return [sum(seq[max(0, i-window+1): i+1]) / min(window, i+1)
+            for i in range(len(seq))]
+
 
 MAXSIZE = 100
 MAXBANDS = 3
@@ -24,35 +27,36 @@ def reset():
 agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
 #agent.loadModel("models/Model-latest.weights.h5")
 
-STEP_PENALTY     = -1.0     # every time step
-NEW_CELL_REWARD  = +5.0
+
 
 roundNum = 0
 EveryReward = []
+PercentVisited = []
 m = reset()
 mapsize = m.getMovableCount()
 print("Map size:", mapsize)
-GOAL_REWARD      = mapsize * 2
+GOAL_REWARD      = +1
+STEP_PENALTY     = -1.0/mapsize     # every time step
+NEW_CELL_REWARD  = +5.0/mapsize
 while roundNum < 10000:
     roundNum += 1
     m = reset()
     allRewards = 0
-    visited = set()
-    visited.add(m.agent)
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
     if roundNum % 100 == 0:
         oldEps = agent.epsilon
-    for i in range(200):
+    for i in range(300):
+        startLen = m.grid[:,:,2].sum()
         m.move_direction(agent.act(m.getGrid3D()))
-        startLen = len(visited)
-        visited.add(m.agent)
+        afterLen = m.grid[:,:,2].sum()
+
         if roundNum % 10 == 0:
             m.displayBase()
-        if len(visited) >= mapsize:
+        if afterLen >= mapsize:
             print("-------------------------------------Visited all cells")
             reward = GOAL_REWARD
-        elif len(visited) > startLen:
-            reward = NEW_CELL_REWARD * (len(visited) - startLen)
+        elif afterLen > startLen:
+            reward = NEW_CELL_REWARD * (afterLen - startLen)
         else:
             reward = STEP_PENALTY
         agent.remember(m.getGrid3D(), reward, reward == GOAL_REWARD)
@@ -62,10 +66,32 @@ while roundNum < 10000:
     print("Total rewards:", allRewards)
     if roundNum % 100 == 0:
         agent.epsilon = oldEps
+    
     EveryReward.append(allRewards)
-    plt.plot([sum(EveryReward[max(0,i-100):i+1])/min(100,i+1) for i in range(len(EveryReward))])
-    plt.plot([sum(EveryReward[max(0,i-10):i+1])/min(10,i+1) for i in range(len(EveryReward))])
-    plt.savefig("rewards.png")
+    visited_pct = (m.grid[:, :, 2].sum() / mapsize) * 100.0   # % of cells cleaned this episode
+    PercentVisited.append(visited_pct)
+
+    # --- plotting ---
+    plt.clf()
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 8), sharex=True)
+
+    # rewards (existing plot)
+    ax1.plot(moving_avg(EveryReward, 100), label="100-pt MA")
+    ax1.plot(moving_avg(EveryReward, 10) , label="10-pt MA")
+    ax1.set_ylabel("Total reward")
+    ax1.legend()
+    ax1.grid(True, linestyle=":")
+
+    # NEW: % of spaces visited
+    ax2.plot(moving_avg(PercentVisited, 100), label="% visited (100-pt MA)")
+    ax2.plot(moving_avg(PercentVisited, 10), label="% visited (10-pt MA)")
+    ax2.set_ylabel("Visited %")
+    ax2.set_xlabel("Episode")
+    ax2.legend()
+    ax2.grid(True, linestyle=":")
+
+    fig.tight_layout()
+    fig.savefig("rewards.png")
 
 m.displayMove()
 m.close()

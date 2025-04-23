@@ -6,18 +6,12 @@ import tensorflow as tf
 gpus = tf.config.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
-from tensorflow.keras import mixed_precision
-mixed_precision.set_global_policy('mixed_float16')
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, Input, Lambda, add
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, Input, Lambda, Add, Reshape, Concatenate, Multiply, Softmax, Layer, Activation, Subtract
 from tensorflow.keras.optimizers import Adam
 from collections import deque
 import random
 from datetime import datetime
-
-
-
-
 
 
 class DQAgent:
@@ -25,10 +19,10 @@ class DQAgent:
         self.inputShape = inputShape
         self.outputShape = outputShape
         self.epsilon = 1
-        self.epsilonDecay = 0.99995
+        self.epsilonDecay = 0.99996
         self.learningRate = 0.001
         self.epsilonMin = 0.01
-        self.gamma = 0.95
+        self.gamma = 0.99
         self.memory = deque(maxlen=51200)
         self.minMemorySize = 5120
         self.sampleSize = 64
@@ -50,7 +44,7 @@ class DQAgent:
         self.targetModel.set_weights(self.actionModel.get_weights())
         self.updateTime = 1000
         if self.epsilon < .9:
-            self.targetModel.save_weights(f"models/Model-{datetime.now().strftime("%d-%m-%Y-%H-%M")}.weights.h5")
+            self.targetModel.save_weights(f"models/Model-{datetime.now().strftime('%d-%m-%Y-%H-%M')}.weights.h5")
             self.actionModel.save_weights(f"models/Model-latest.weights.h5")
 
     def reset(self):
@@ -58,25 +52,30 @@ class DQAgent:
 
     def buildModel(self):
         inputs = Input(shape=self.inputShape)
-        x = Conv2D(128, (7,7), activation='relu')(inputs)
-        x = Conv2D(64, (3,3), activation='relu')(x)
-        flat = Flatten()(x)
 
-        v = Dense(128, activation='relu')(flat)
-        v = Dense(32, activation='relu')(v)
-        v = Dense(1, activation='linear')(v)  # V(s)
+        # shared convolution trunk
+        x = Conv2D(64, 3, activation='relu')(inputs)
+        x = Conv2D(64, 3, activation='relu')(x)
+        x = Flatten()(x)
+        x = Dense(128, activation='relu')(x)         # (batch, 128)
 
-        a = Dense(128, activation='relu')(flat)
-        a = Dense(32, activation='relu')(flat)
+        # value stream
+        v = Dense(64, activation='relu')(x)
+        v = Dense(1)(v)             # V(s) in fp32
+
+        # advantage stream
+        a = Dense(64, activation='relu')(x)
         a = Dense(self.outputShape, activation='linear')(a)  # A(s,a)
 
         mean_a = Lambda(lambda t: tf.reduce_mean(t, axis=1, keepdims=True))(a)
-        q_values = add([v, Lambda(lambda t: t[0] - t[1])([a, mean_a])])
+        q_values = tf.keras.layers.add([v, Lambda(lambda t: t[0] - t[1])([a, mean_a])])
 
-        # 5) Compile model
-        model = Model(inputs=inputs, outputs=q_values)
-        model.compile(optimizer=tf.keras.optimizers.Adam(self.learningRate),
-                    loss='mse')
+        # compile
+        model = Model(inputs, q_values, name="Dueling_DQN")
+        model.compile(
+            optimizer=Adam(self.learningRate),
+            loss=tf.keras.losses.Huber(delta=1.0)           # robust for RL targets
+        )
         return model
 
     # call to take an action in the environment
@@ -87,9 +86,6 @@ class DQAgent:
         else:
             act_values = self.actionModel.predict(self.lastState, verbose=0)
             self.lastAction = np.argmax(act_values[0])
-        self.epsilon *= self.epsilonDecay
-        if self.epsilon < self.epsilonMin:
-            self.epsilon = self.epsilonMin
         return self.lastAction
     
     # call to remember the last action taken and the reward received
@@ -118,14 +114,13 @@ class DQAgent:
 
         q_current = self.actionModel.predict(states, verbose=0)
 
-        for i in range(self.sampleSize):
-            if dones[i]:
-                q_current[i, actions[i]] = rewards[i]
-            else:
-                best_next_action = np.argmax(q_next_online[i])                 # select via online net
-                target_q_value   = q_next_target[i, best_next_action]          # evaluate via target net
-                q_current[i, actions[i]] = rewards[i] + self.gamma * target_q_value
+        q_current[ np.arange(self.sampleSize), actions ] = (
+            rewards + (1 - dones) * self.gamma *
+            q_next_target[np.arange(self.sampleSize), q_next_online.argmax(1)]  # select via online net and evaluate via target net
+        )
 
         self.actionModel.fit(states, q_current, epochs=1, batch_size=self.sampleSize, verbose=0)
         self.updateTargetModel()
-
+        self.epsilon *= self.epsilonDecay
+        if self.epsilon < self.epsilonMin:
+            self.epsilon = self.epsilonMin
