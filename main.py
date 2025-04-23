@@ -5,17 +5,26 @@ from map import Map
 from DQAgent import DQAgent
 import random
 import matplotlib.pyplot as plt
+from collections import deque
 
-def moving_avg(seq, window):
-    return [sum(seq[max(0, i-window+1): i+1]) / min(window, i+1)
-            for i in range(len(seq))]
+# helper Incrementally update a moving-average list
+def update_ma(window, running_sum, new_val, ma_store):
+    # drop the value that just fell out of the window (if any)
+    if len(window) == window.maxlen:
+        running_sum -= window[0]
+    # push the new value
+    window.append(new_val)
+    running_sum += new_val
+    # append current average
+    ma_store.append(running_sum / len(window))
+    return running_sum
 
 
 MAXSIZE = 100
 MAXBANDS = 3
 
 def reset():
-    m = Map(100, 100, 10, MAXSIZE, MAXBANDS)
+    m = Map(100, 100, 11, MAXSIZE, MAXBANDS)
     m.add_wall(0, 0, 100, 10)
     m.add_wall(0, 0, 10, 100)
     m.add_wall(90, 0, 100, 100)
@@ -28,16 +37,24 @@ agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
 #agent.loadModel("models/Model-latest.weights.h5")
 
 
+rew_w100, rew_w10 = deque(maxlen=100), deque(maxlen=10)
+vis_w100, vis_w10 = deque(maxlen=100), deque(maxlen=10)
+
+sum_rew100 = sum_rew10 = 0.0
+sum_vis100 = sum_vis10 = 0.0
+
+MA_rew100, MA_rew10 = [], []        # what will plot
+MA_vis100, MA_vis10 = [], []
 
 roundNum = 0
-EveryReward = []
-PercentVisited = []
 m = reset()
 mapsize = m.getMovableCount()
 print("Map size:", mapsize)
-GOAL_REWARD      = +1
-STEP_PENALTY     = -1.0/mapsize     # every time step
-NEW_CELL_REWARD  = +5.0/mapsize
+GOAL_REWARD      = 100
+STEP_PENALTY     = -1.0     # every time step
+NEW_CELL_REWARD  = +.05
+currGoal = .70
+goalCount = 0
 while roundNum < 10000:
     roundNum += 1
     m = reset()
@@ -52,8 +69,15 @@ while roundNum < 10000:
 
         if roundNum % 10 == 0:
             m.displayBase()
-        if afterLen >= mapsize:
-            print("-------------------------------------Visited all cells")
+        if afterLen >= (mapsize*currGoal):
+            goalCount += 1
+            if goalCount >= 20:
+                currGoal += .05
+                if currGoal > 1.0:
+                    currGoal = 1.0
+                goalCount = 0
+                print("Goal reached, making harder",currGoal)
+            print("-------------------------------------Visited all cells",currGoal)
             reward = GOAL_REWARD
         elif afterLen > startLen:
             reward = NEW_CELL_REWARD * (afterLen - startLen)
@@ -67,24 +91,30 @@ while roundNum < 10000:
     if roundNum % 100 == 0:
         agent.epsilon = oldEps
     
-    EveryReward.append(allRewards)
+
     visited_pct = (m.grid[:, :, 2].sum() / mapsize) * 100.0   # % of cells cleaned this episode
-    PercentVisited.append(visited_pct)
+
+    # update running moving averages
+    sum_rew100 = update_ma(rew_w100, sum_rew100, allRewards, MA_rew100)
+    sum_rew10  = update_ma(rew_w10 , sum_rew10 , allRewards, MA_rew10)
+
+    sum_vis100 = update_ma(vis_w100, sum_vis100, visited_pct, MA_vis100)
+    sum_vis10  = update_ma(vis_w10 , sum_vis10 , visited_pct, MA_vis10)
 
     # --- plotting ---
     plt.clf()
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 8), sharex=True)
 
     # rewards (existing plot)
-    ax1.plot(moving_avg(EveryReward, 100), label="100-pt MA")
-    ax1.plot(moving_avg(EveryReward, 10) , label="10-pt MA")
+    ax1.plot(MA_rew100, label="100-pt MA")
+    ax1.plot(MA_rew10 , label="10-pt MA")
     ax1.set_ylabel("Total reward")
     ax1.legend()
     ax1.grid(True, linestyle=":")
 
     # NEW: % of spaces visited
-    ax2.plot(moving_avg(PercentVisited, 100), label="% visited (100-pt MA)")
-    ax2.plot(moving_avg(PercentVisited, 10), label="% visited (10-pt MA)")
+    ax2.plot(MA_vis100, label="% visited (100-pt MA)")
+    ax2.plot(MA_vis10 , label="% visited (10-pt MA)")
     ax2.set_ylabel("Visited %")
     ax2.set_xlabel("Episode")
     ax2.legend()
@@ -92,6 +122,7 @@ while roundNum < 10000:
 
     fig.tight_layout()
     fig.savefig("rewards.png")
+    plt.close(fig)
 
 m.displayMove()
 m.close()

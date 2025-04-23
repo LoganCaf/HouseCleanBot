@@ -19,8 +19,8 @@ class DQAgent:
         self.inputShape = inputShape
         self.outputShape = outputShape
         self.epsilon = 1
-        self.epsilonDecay = 0.99996
-        self.learningRate = 0.001
+        self.epsilonDecay = 0.99995
+        self.learningRate = 0.0001
         self.epsilonMin = 0.01
         self.gamma = 0.99
         self.memory = deque(maxlen=51200)
@@ -80,7 +80,7 @@ class DQAgent:
 
     # call to take an action in the environment
     def act(self,state):
-        self.lastState = state.reshape((1, *self.inputShape))
+        self.lastState = state.reshape((1, *self.inputShape)).copy()
         if np.random.rand() <= self.epsilon:
             self.lastAction = random.randrange(self.outputShape)
         else:
@@ -91,16 +91,19 @@ class DQAgent:
     # call to remember the last action taken and the reward received
     # this is called after the action has been taken and a new state has been received
     def remember(self,state,reward,done):
-        self.memory.append((self.lastState,self.lastAction,reward,state.reshape((1, *self.inputShape)),done))
+        self.memory.append((self.lastState,self.lastAction,reward,state.reshape((1, *self.inputShape)).copy(),done))
         self.train()
     
     def train(self):
         if len(self.memory) < self.minMemorySize:
             return
-        if self.trainTime > 0:
-            self.trainTime -= 1
-            return
-        self.trainTime = 10
+        self.epsilon *= self.epsilonDecay
+        if self.epsilon < self.epsilonMin:
+            self.epsilon = self.epsilonMin
+        # if self.trainTime > 0:
+        #     self.trainTime -= 1
+        #     return
+        # self.trainTime = 10
         batch = random.sample(self.memory, self.sampleSize)
 
         states      = np.vstack([exp[0] for exp in batch])           # shape: (batch, H, W, C)
@@ -121,6 +124,3 @@ class DQAgent:
 
         self.actionModel.fit(states, q_current, epochs=1, batch_size=self.sampleSize, verbose=0)
         self.updateTargetModel()
-        self.epsilon *= self.epsilonDecay
-        if self.epsilon < self.epsilonMin:
-            self.epsilon = self.epsilonMin

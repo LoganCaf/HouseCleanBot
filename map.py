@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 class Map:
-    def __init__(self, length, width,agentSize=10,MAXSIZE=400,MAXBANDS=15):
+    def __init__(self, length, width,agentSize=11,MAXSIZE=400,MAXBANDS=15):
         self.length = length
         self.width = width
         self.agentSize = agentSize
@@ -24,28 +24,15 @@ class Map:
 
     def add_agent(self, x, y):
         self.agent = (x, y)
-        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
-            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
-                if x + r < self.length and y + c < self.width:
-                    if self.grid[x + r,y + c,0] != 0:
-                        raise ValueError("Invalid position for agent")
-                    self.grid[x + r,y + c,1] = 1
+        self.grid[self.agent[0]-(self.agentSize//2):self.agent[0]+(self.agentSize//2)+1,self.agent[1]-(self.agentSize//2):self.agent[1]+(self.agentSize//2)+1,1] = 1 # remove agent
+        self.grid[self.agent[0]-(self.agentSize//2):self.agent[0]+(self.agentSize//2)+1,self.agent[1]-(self.agentSize//2):self.agent[1]+(self.agentSize//2)+1,2] = 1 # set clean
     
     def remove_agent(self):
-        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
-            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
-                if self.agent[0] + r < self.length and self.agent[1] + c < self.width:
-                    self.grid[self.agent[0] + r,self.agent[1] + c,2] = 1 # set where i was to clean
-                    self.grid[self.agent[0] + r,self.agent[1] + c,1] = 0 # remove agent
+        self.grid[self.agent[0]-(self.agentSize//2):self.agent[0]+(self.agentSize//2)+1,self.agent[1]-(self.agentSize//2):self.agent[1]+(self.agentSize//2)+1,1] = 0 # remove agent
         self.agent = None
     
     def checkCollision(self, x, y):
-        for r in range(-(self.agentSize//2), (self.agentSize//2)+1):
-            for c in range(-(self.agentSize//2), (self.agentSize//2)+1):
-                if x + r < self.length and y + c < self.width:
-                    if self.grid[x + r,y + c,0] != 0:
-                        return True
-        return False
+        return x-(self.agentSize//2) < 0 or x+(self.agentSize//2) >= self.length or y-(self.agentSize//2) < 0 or y+(self.agentSize//2) >= self.width or self.grid[x-(self.agentSize//2):x+(self.agentSize//2)+1,y-(self.agentSize//2):y+(self.agentSize//2)+1,0].sum() != 0
 
     def displayMove(self):
         while True:
@@ -86,23 +73,35 @@ class Map:
         cv.destroyAllWindows()
 
     def move_agent(self, x, y):
-        if not self.checkCollision(x, y):
+        if self.checkCollision(x, y):
+            return False
+        else:
             self.remove_agent()
             self.add_agent(x, y)
+            return True
 
     
     def move_direction(self, direction):
         mult = (((direction // 4)+1)*self.agentSize)//4 # movement speed
         direction = direction%4 #movement direction
-        match direction:
-            case 0:
-                self.move_agent(self.agent[0] - mult, self.agent[1])
-            case 1:
-                self.move_agent(self.agent[0] + mult, self.agent[1])
-            case 2:
-                self.move_agent(self.agent[0], self.agent[1] - mult)
-            case 3:
-                self.move_agent(self.agent[0], self.agent[1] + mult)
+        while True:
+            if mult == 0:
+                break
+            match direction:
+                case 0:
+                    if self.move_agent(self.agent[0] - mult, self.agent[1]):
+                        break
+                case 1:
+                    if self.move_agent(self.agent[0] + mult, self.agent[1]):
+                        break
+                case 2:
+                    if self.move_agent(self.agent[0], self.agent[1] - mult):
+                        break
+                case 3:
+                    if self.move_agent(self.agent[0], self.agent[1] + mult):
+                        break
+            mult -= 1
+                
     
 
     def getGrid3D(self):
