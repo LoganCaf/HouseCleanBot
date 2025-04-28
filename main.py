@@ -34,7 +34,7 @@ def reset():
 
 
 agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
-agent.loadModel("models/Model-latest.weights.h5")
+#agent.loadModel("models/Model-latest.weights.h5")
 # agent.epsilon = 0.75
 
 

@@ -1,3 +1,5 @@
+## PER.py
+# this file contains the implementation of the Prioritized Experience Replay (PER) buffer.
 import numpy as np
 import random
 

@@ -57,10 +57,12 @@ class DQAgent:
         inputs = Input(shape=self.inputShape)
 
         # shared convolution trunk
-        x = Conv2D(64, 3, activation='relu', padding="same")(inputs)
+        x = Conv2D(128, 3, activation='relu', padding="same")(inputs)
+        x = Conv2D(64, 3, activation='relu', padding="same")(x)
         x = Conv2D(64, 3, activation='relu', padding="same")(x)
         x = Flatten()(x)
         x = Dense(256, activation='relu')(x)         # (batch, 128)
+        x = Dense(256, activation='relu')(x)
 
         # value stream
         v = Dense(128, activation='relu')(x)
