@@ -11,7 +11,7 @@ class Map:
         self.width = width
         self.agentSize = agentSize
         self.agent = None
-        self.grid = np.zeros((MAXSIZE, MAXSIZE, MAXBANDS)).astype(np.float16)
+        self.grid = np.zeros((MAXSIZE, MAXSIZE, MAXBANDS), dtype=np.uint8)
         # grind bands:
         # if all 0 then assumed nothing is there
         # 0 - wall
