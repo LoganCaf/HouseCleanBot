@@ -126,9 +126,11 @@ import matplotlib.pyplot as plt
 # grid, ... =
 # color_grid = svg_to_color_grid('train-00/0000-0003.svg')
 #grid = binary_dilation(grid, iterations=1).astype(np.uint8)
+# binary_grid = svg_to_binary_grid('train-00/0000-0003.svg')
+
 
 # plt.figure(figsize=(6,6))
-# plt.imshow(color_grid, interpolation='nearest')     # change to 'nearest' for blockier image but more precise, bilinear for smoother
+# plt.imshow(binary_grid, interpolation='nearest')     # change to 'nearest' for blockier image but more precise, bilinear for smoother
 # plt.axis('off')
 # plt.title("Parsed Grid")
 # plt.show()
