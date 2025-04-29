@@ -50,7 +50,7 @@ static_maps = [
 # This function may require more implementation to incorporate color
 def reset_svg():
     mask = static_rgb   # change this to the function calling a random map once it works
-    m = Map(GRID_SIZE[0], GRID_SIZE[1])
+    m = Map(GRID_SIZE[0], GRID_SIZE[1], 11, MAXSIZE, MAXBANDS)
     for i in range(GRID_SIZE[0]):
         for j in range(GRID_SIZE[1]):
             if mask[i, j]:
@@ -63,13 +63,14 @@ def reset_svg():
 static_binary = svg_to_binary_grid('train-00/0000-0003.svg', grid_size=(MAXSIZE, MAXSIZE))
 def reset_svg_binary():
     mask = static_binary
-    m = Map(GRID_SIZE[0], GRID_SIZE[1])
+    m = Map(GRID_SIZE[0], GRID_SIZE[1], 11, MAXSIZE, MAXBANDS)
+    print(m.grid.shape, mask.shape)
     m.grid[:,:,0] = mask.copy() # sets walls
     
     # Start agent on a free cell
     while True:
-        startx = random.choice(random.randint(0, GRID_SIZE[0]-1))
-        starty = random.choice(random.randint(0, GRID_SIZE[0]-1))
+        startx = random.randint(0, GRID_SIZE[0]-1)
+        starty = random.randint(0, GRID_SIZE[0]-1)
         if not m.checkCollision(startx, starty):
             m.add_agent(startx, starty)
             break

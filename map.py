@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 
 class Map:
-    def __init__(self, length, width,agentSize=11,MAXSIZE=400,MAXBANDS=15):
+    def __init__(self, length, width,agentSize,MAXSIZE,MAXBANDS):
         self.length = length
         self.width = width
         self.agentSize = agentSize
