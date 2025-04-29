@@ -1,13 +1,15 @@
 ## DQAgent.py
 # This file contains the DQAgent class, which implements a Deep Q-Learning agent using TensorFlow and Keras.
 
+import os
+os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 import numpy as np
 import tensorflow as tf
 gpus = tf.config.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, Input, Lambda, Add, Reshape, Concatenate, Multiply, Softmax, Layer, Activation, Subtract
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, Input, Lambda, Add, Reshape, Concatenate, Multiply, Softmax, Layer, Activation, Subtract, MaxPooling2D
 from tensorflow.keras.optimizers import Adam
 import random
 from datetime import datetime
@@ -23,7 +25,7 @@ class DQAgent:
         self.learningRate = 0.0001
         self.epsilonMin = 0.01
         self.gamma = 0.99
-        self.memory = PrioritizedReplayBuffer(capacity=1_000_000, alpha=0.6)
+        self.memory = PrioritizedReplayBuffer(capacity=20000, alpha=0.6)
         self.minMemorySize = 5120
         self.sampleSize = 64
         self.actionModel = self.buildModel()
@@ -54,15 +56,15 @@ class DQAgent:
         pass
 
     def buildModel(self):
-        inputs = Input(shape=self.inputShape)
+        inputs = Input(shape=self.inputShape,dtype=tf.float16)
 
         # shared convolution trunk
-        x = Conv2D(128, 3, activation='relu', padding="same")(inputs)
-        x = Conv2D(64, 3, activation='relu', padding="same")(x)
-        x = Conv2D(64, 3, activation='relu', padding="same")(x)
+        x = Conv2D(64, 3, activation='relu', padding="same")(inputs)
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Conv2D(32, 3, activation='relu', padding="same")(x)
+        x = MaxPooling2D(pool_size=(3, 3))(x)
         x = Flatten()(x)
         x = Dense(256, activation='relu')(x)         # (batch, 128)
-        x = Dense(256, activation='relu')(x)
 
         # value stream
         v = Dense(128, activation='relu')(x)
