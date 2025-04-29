@@ -56,15 +56,13 @@ def reset_svg():
             if mask[i, j]:
                 m.grid[i][j] = '0'
     
-    # Start agent on a free cell
-    free_cells = list(zip(*np.where(mask == 0)))
-    start = random.choice(free_cells)
-    m.add_agent(*start)
+    # Start agent on a free cell ? (not a wall)
 
 
 # Starting with binary maps
+static_binary = svg_to_binary_grid('train-00/0000-0003.svg', grid_size=(MAXSIZE, MAXSIZE))
 def reset_svg_binary():
-    mask = svg_to_binary_grid(static_rgb)
+    mask = static_binary
     m = Map(GRID_SIZE[0], GRID_SIZE[1])
     for i in range(GRID_SIZE[0]):
         for j in range(GRID_SIZE[1]):
@@ -104,7 +102,7 @@ goalCount = deque(maxlen=20)
 while roundNum < 10000:
 
     roundNum += 1
-    m = reset()     # this may not be the portion to comment out but I think it will help establish the map as the training data? -Z
+    m = reset_svg_binary()     # this may not be the portion to comment out but I think it will help establish the map as the training data? -Z
     allRewards = 0
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
     if roundNum % 100 == 0:
