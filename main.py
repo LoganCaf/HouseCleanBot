@@ -54,7 +54,7 @@ def reset_svg():
     for i in range(GRID_SIZE[0]):
         for j in range(GRID_SIZE[1]):
             if mask[i, j]:
-                m.grid[i][j] = '0'
+                m.grid[i,j,0] = 1
     
     # Start agent on a free cell ? (not a wall)
 
@@ -64,19 +64,19 @@ static_binary = svg_to_binary_grid('train-00/0000-0003.svg', grid_size=(MAXSIZE,
 def reset_svg_binary():
     mask = static_binary
     m = Map(GRID_SIZE[0], GRID_SIZE[1])
-    for i in range(GRID_SIZE[0]):
-        for j in range(GRID_SIZE[1]):
-            if mask[i, j]:
-                m.grid[i][j] = '0'      # check this value...
+    m.grid[:,:,0] = mask.copy() # sets walls
     
     # Start agent on a free cell
-    free_cells = list(zip(*np.where(mask == 0)))
-    start = random.choice(free_cells)
-    m.add_agent(*start)
+    while True:
+        startx = random.choice(random.randint(0, GRID_SIZE[0]-1))
+        starty = random.choice(random.randint(0, GRID_SIZE[0]-1))
+        if not m.checkCollision(startx, starty):
+            m.add_agent(startx, starty)
+            break
     return m
 
 agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
-#agent.loadModel("models/Model-latest.weights.h5")
+agent.loadModel("models/Model-latest.weights.h5")
 # agent.epsilon = 0.75
 
 
@@ -100,8 +100,8 @@ NEW_CELL_REWARD  = +.1
 currGoal = 1
 goalCount = deque(maxlen=20)
 while roundNum < 10000:
-
     roundNum += 1
+    m.close()
     m = reset_svg_binary()     # this may not be the portion to comment out but I think it will help establish the map as the training data? -Z
     allRewards = 0
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
@@ -112,7 +112,7 @@ while roundNum < 10000:
         m.move_direction(agent.act(m.getGrid3D()))
         afterLen = m.grid[:,:,2].sum()
 
-        if roundNum % 10 == 0:
+        if roundNum % 1 == 0:
             m.displayBase()
         if afterLen >= (mapsize*currGoal):
             goalCount.append(1)
