@@ -53,8 +53,7 @@ static_maps = [
 def reset_svg():
     mask = static_rgb   # change this to the function calling a random map once it works
     m = Map(mask.shape[0], mask.shape[1], 11, MAXSIZE, MAXBANDS)
-    print(m.grid.shape, mask.shape)
-    m.grid[:,:,0] = colorGridTo3dGrid(mask).copy()[:,:,[0,4,5,6]].sum(axis=2) # sets walls
+    m.grid[:,:,0] = (colorGridTo3dGrid(mask).copy()[:,:,[0,4,5,6]].sum(axis=2)>0) # sets walls
     
     # Start agent on a free cell
     while True:
@@ -73,7 +72,6 @@ static_binary = svg_to_binary_grid('train-00/0000-0003.svg', grid_size=(MAXSIZE,
 def reset_svg_binary():
     mask = static_binary
     m = Map(mask.shape[0], mask.shape[1], 11, MAXSIZE, MAXBANDS)
-    print(m.grid.shape, mask.shape)
     m.grid[:,:,0] = mask.copy() # sets walls
     
     # Start agent on a free cell
@@ -86,7 +84,7 @@ def reset_svg_binary():
     return m
 
 agent = DQAgent((MAXSIZE, MAXSIZE, MAXBANDS), 16)
-agent.loadModel("models/Model-latest.weights.h5")
+#agent.loadModel("models/Model-latest.weights.h5")
 # agent.epsilon = 0.75
 
 
@@ -101,9 +99,6 @@ MA_vis100, MA_vis10 = [], []
 
 
 roundNum = 0
-m = reset()
-mapsize = m.getMovableCount()
-print("Map size:", mapsize)
 GOAL_REWARD      = 300
 STEP_PENALTY     = -0.00001     # every time step
 NEW_CELL_REWARD  = +.1
@@ -111,7 +106,8 @@ currGoal = 1
 goalCount = deque(maxlen=20)
 while roundNum < 10000:
     roundNum += 1
-    m = reset_svg()     # this may not be the portion to comment out but I think it will help establish the map as the training data? -Z
+    m = reset()     # this may not be the portion to comment out but I think it will help establish the map as the training data? -Z
+    mapsize = m.getMovableCount()
     allRewards = 0
     print("Round:", roundNum, "Epsilon:", agent.epsilon)
     if roundNum % 100 == 0:
@@ -121,7 +117,7 @@ while roundNum < 10000:
         m.move_direction(agent.act(m.getGrid3D()))
         afterLen = m.grid[:,:,2].sum()
 
-        if roundNum % 10 == 0:
+        if roundNum % 100 == 0:
             m.displayBase()
         if afterLen >= (mapsize*currGoal):
             goalCount.append(1)
