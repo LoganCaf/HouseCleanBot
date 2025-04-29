@@ -54,7 +54,7 @@ def reset_svg():
     mask = static_rgb   # change this to the function calling a random map once it works
     m = Map(mask.shape[0], mask.shape[1], 11, MAXSIZE, MAXBANDS)
     print(m.grid.shape, mask.shape)
-    m.grid[:,:,0] = colorGridTo3dGrid(mask).copy()[:,:,[0,1,4,5,6]].sum(axis=2) # sets walls
+    m.grid[:,:,0] = colorGridTo3dGrid(mask).copy()[:,:,[0,4,5,6]].sum(axis=2) # sets walls
     
     # Start agent on a free cell
     while True:
