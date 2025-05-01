@@ -71,5 +71,5 @@ for i in range(1000): # run for 1000 steps in 1 game
     allRewards += reward
     if reward == GOAL_REWARD:
         break
-print("Total rewards:", allRewards)
+print("Total rewards:", allRewards, "Total percent:", (m.grid[:, :, 2].sum() / mapsize) * 100.0)
 m.close()
